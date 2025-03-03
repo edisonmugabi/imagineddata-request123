@@ -2,8 +2,12 @@ import streamlit as st
 import time as t
 import pandas as pd
 import numpy as np
-from oauth2client.service_account import ServiceAccountCredentials
+from streamlit_gsheets import GSheetsConnection
+conn = st.connection("gsheets", type=GSheetsConnection)
 from datetime import datetime
+from google.oauth2 import service_account
+import gspread
+import json
 from PIL import Image
 
 # Displaying an image
@@ -56,9 +60,9 @@ with st.form("my_form"):
     if submitted:
         with st.spinner("Submitting data..."):
             try:
-                scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+                scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/spreadsheets"]
                 credentials_dict = st.secrets["gcp_service_account"]
-                credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
+                credentials = service_account.Credentials.from_service_account_info(credentials_dict, scopes=scope)
                 gc = gspread.authorize(credentials)
                 
                 spreadsheet = gc.open("Rawdata")
@@ -66,7 +70,10 @@ with st.form("my_form"):
                 
                 # Prepare row data with timestamp
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                row_data = [timestamp, name_employer, email, age, DOB, DOBtime, gender, region, color, rating_project, age_beneficiary, picture_name]
+                dob_str = DOB.strftime("%Y-%m-%d")  # Convert date to string
+                dobtime_str = DOBtime.strftime("%H:%M:%S")  # Convert time to string
+                color_str = ', '.join(color)  # Convert list to string
+                row_data = [timestamp, name_employer, email, age, dob_str, dobtime_str, gender, region, color_str, rating_project, age_beneficiary, picture_name]
                 
                 # Append row to sheet
                 worksheet.append_row(row_data)
